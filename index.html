@@ -1,0 +1,515 @@
+<?php
+session_save_path('/tmp');
+session_start();
+
+require 'config.php';
+
+$email = "";
+
+function extrairPrimeiroNome($nomeCompleto) {
+    // Divide a string em partes usando espaços como delimitador
+    $partes = explode(' ', $nomeCompleto);
+
+    // Retorna o primeiro elemento da matriz (primeiro nome)
+    return $partes[0];
+}
+
+if (isset($_SESSION['email'])) {
+    $email = $_SESSION['email'];
+   $sql = "SELECT nome FROM cad_usuarios WHERE login = '$email'";
+        $result = $connection->query($sql);
+        if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $nomeCompleto = $row['nome'];
+        $nome = extrairPrimeiroNome($nomeCompleto);
+      
+    }
+} 
+}
+?>
+<!DOCTYPE html>
+
+
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4climatize</title>
+    <link rel="stylesheet" href="./assets/style/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+
+<div>
+    <header class="header">
+        <nav class="nav-bar">
+            <div class="logo">
+                <a href="./index.html" class="nav-link"><?php
+                    if((isset($_SESSION['email']))) {
+                        echo "<li class='nav-item'>Olá, $nome!</li></a>";
+                echo "<li class='nav-item'><a href='exit.php'>Sair</a></li>";
+}?>
+
+            </div>
+            <div class="nav-list">
+                <ul>
+                    <li class="nav-item"><a href="#servicos" class="nav-link">Produtos</a></li>
+                    <li class="nav-item"><a href="#sobre-nos" class="nav-link">Sobre nós</a></li>
+                    <li class="nav-item"><a href="#contatos" class="nav-link">Contatos</a></li>
+                    
+                    <?php 
+                    if((isset($_SESSION['email']))){
+                        echo "<li class='nav-item'><a href='login.php' class='nav-link'>Painel</a></li>";
+                    }else{ 
+                    echo '<li class="nav-item" id="modalCadastro">Cadastro</li>';
+                    echo '<li class="nav-item" id="button-modal">Login</li>';
+                    }
+                    ?>
+
+
+                </ul>
+            </div>
+            <img src="./assets/img/menu-btn.png" class="img-menu-responsivo">
+        </nav>
+    </header>
+
+    <section class="banner">
+        <div class="info">
+            <p>4climatize</p>
+            <h1>
+                Desenvolvimento de tecnologias<br>
+                para facilitar seu negócio.
+            </h1>
+                <button class="cta"><a href="#">Transforme seu futuro agora!</a></button>
+        </div>
+    </section>
+
+    <!-- pop-up de login-->
+    <dialog class="dialogLogin">
+        <?php
+
+
+        if (isset($_SESSION['email'])){
+            header('Location: /');
+        }
+
+
+        if (isset($_POST['submit'])) {
+            if (empty($_POST['email']) || empty($_POST['password'])) {
+                $error_message = "Por favor, preencha todos os campos.";
+            } else {
+                include_once('config.php');
+
+                $loginUser = $_POST['email'];
+                $loginPassword = $_POST['password'];
+
+                $sql = "SELECT * FROM users WHERE email = '$loginUser'";
+                $result = $connection->query($sql);
+
+                if ($result->num_rows < 1) {
+                    $error_message = "Usuário não encontrado. Verifique seu email.";
+                } else {
+                    $user = $result->fetch_assoc();
+                    $hashedPassword = $user['encrypted_password'];
+
+                    if (password_verify($loginPassword, $hashedPassword)) {
+                        $_SESSION['email'] = $loginUser;
+//                $_SESSION['username'] = $result->;
+
+                        header('Location: ./');
+                    } else {
+                        $error_message = "Senha ou email incorreto. Tente novamente.";
+                    }
+                }
+            }
+        }
+        ?>
+            <div class="content">
+    <div class="section-img">
+        <img src="./assets/img/account.png">
+    </div>
+     <div class="form-login">
+    <form  action="login.php" method="POST">
+      <h1>Login</h1>
+      <div class="fields-login">
+        <p class="field campo-email-login">
+          <label for="email" name="email">Email</label>
+          <input type="email" name="email" placeholder="Seu e-mail">
+        </p>
+  
+        <p class="field campo-senha-login">
+          <label for="password" name="password">Senha</label>
+          <input type="password" name="password" placeholder="Sua senha">
+        </p>
+  
+        <input class='submit-button-login' type="submit" name="submit" value="Enviar">
+      </div>
+  
+      <div class="links">
+        <a href="request_reset_password.php">Esqueceu a senha?</a>
+        <p class="dialogCadastro">Cadastre-se</p>
+      </div>
+      <!-- Adicione a mensagem de erro aqui -->
+    <?php if (isset($error_message)): ?>
+      <div class="error-message">
+        <?php echo $error_message; ?>
+      </div>
+    <?php endif; ?>
+    </form>
+                <button class="exit">X</button>
+     </div>
+  </div>
+        </dialog>
+    <!-- fim do pop-up de login-->
+    
+    
+    <!-- pop-up de cadastro-->
+    <dialog class="dialogCadastro">
+        <?php
+include_once('config.php');
+
+if (isset($_POST['submit'])) {
+    $nameUser = $_POST['name'];
+    $emailUser = $_POST['email'];
+    $phoneUser = $_POST['phone'];
+    $mac = $_POST['macProduct'];
+    $passwordUser = $_POST['password'];
+    $confirmPassword = $_POST['confirm_password'];
+
+    // Verificar se as senhas coincidem
+    if ($passwordUser != $confirmPassword) {
+        echo "As senhas não coincidem.";
+    } else {
+        // Verificar se o MAC existe na tabela 'status_sensors'
+        $macCheckQuery = "SELECT id FROM status_sensors WHERE id_equipamento = '$mac'";
+        $macCheckResult = mysqli_query($connection, $macCheckQuery);
+
+        if (mysqli_num_rows($macCheckResult) > 0) {
+            // Gere um token de confirmação
+            $confirmation_token = bin2hex(random_bytes(16));
+
+            // Inserir os dados do usuário na tabela 'cad_usuarios' com a senha
+            $hashedPassword = password_hash($passwordUser, PASSWORD_DEFAULT);
+            $insertQuery = "INSERT INTO cad_usuarios (nome, login, user_password_hash, created_at, confirmation_token) 
+                            VALUES ('$nameUser', '$emailUser', '$hashedPassword', NOW(), '$confirmation_token')";
+            
+            if (mysqli_query($connection, $insertQuery)) {
+                // Configurar o PHPMailer para enviar o e-mail de confirmação
+                require 'PHPMailer/src/PHPMailer.php';
+                require 'PHPMailer/src/SMTP.php';
+
+                $mail = new PHPMailer\PHPMailer\PHPMailer();
+                $mail->isSMTP();
+                $mail->Host = 'email-ssl.com.br';
+                $mail->Port = 465;
+                $mail->SMTPSecure = 'ssl';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'contato@4climatize.com.br';
+                $mail->Password = '4climatizeT3st3!';
+                $mail->setFrom('contato@4climatize.com.br', '4Climatize');
+                $mail->addAddress($emailUser);
+                $mail->Subject = 'Confirme seu e-mail';
+                $confirmLink = "https://4climatize.com.br/confirm.php?token=$confirmation_token";
+                $mail->Body = "Clique no link a seguir para confirmar seu e-mail: $confirmLink";
+
+                if ($mail->send()) {
+                    // E-mail enviado com sucesso
+                    echo "Um e-mail de confirmação foi enviado para o seu endereço de e-mail. Verifique sua caixa de entrada.";
+                } else {
+                    // Erro ao enviar o e-mail
+                    echo 'Erro ao enviar o e-mail de confirmação: ' . $mail->ErrorInfo;
+                }
+            } else {
+                echo "Erro ao cadastrar: " . mysqli_error($connection);
+            }
+        } else {
+            echo "MAC não encontrado na base de dados.";
+        }
+    }
+}
+?>
+
+        <div class="content-cadastro">
+                <div class="text-cadastro">
+                    <img src="./assets/img/profile3.png" class="img-cadastro" alt="">
+                </div>
+        <div class="form-cadastro">
+            <form  action="cadastro.php" method="POST">
+                <div class="fields">
+                    <p class="field campo-nome">
+                         <label for="name" id="name"></label>
+                        <input type="name" id="name" name="name" placeholder="Nome Completo" required>
+                    </p>
+
+                    <p class="field campo-email">
+                        <label for="email" id="email"></label>
+                        <input type="email" id="email" name="email"  placeholder="Email" required>
+                    </p>
+                    <div class="field-campo-tel-mac">
+                        <p class="field campo-telefone">
+                            <label for="phone" id="phone"></label>
+                            <input type="number" id="phone" name="phone"  placeholder="Telefone" required>
+                        </p>
+
+                        <p class="field campo-mac">
+                            <label for="macProduct" id="macProduct"></label>
+                            <input type="text" id="macProduct" name="macProduct" placeholder="ID do Sensor" required>
+                        </p>
+                    </div>
+                    <div class="field-principal-senha">
+                    <p class="field campo-senha">
+                        <label for="password" id="password"></label>
+                        <input type="password" id="password" name="password" placeholder="Senha" required>
+                    </p>
+
+                    <p class="field campo-confirmar-senha">
+                        <label for="confirm_password" id="confirm_password"></label>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirmar Senha" required>
+                    </p>
+                    </div>
+                    <input class='submit-button' type="submit" name="submit" value="Enviar">
+                </div>
+
+                <div class="links">
+                    <a href="request_reset_password.php">Esqueceu a senha?</a>
+                    <a class="dialogCadastro">Cadastre-se</a>
+                </div>
+                <!-- Adicione a mensagem de erro aqui -->
+                <?php if (isset($error_message)): ?>
+                    <div class="error-message">
+                        <?php echo $error_message; ?>
+                    </div>
+                <?php endif; ?>
+            </form>
+            <button class="exit-cadastro">X</button>
+        </div>
+    </dialog>
+</div>
+        
+    <!-- fim do pop-up de cadastro-->
+    <div class="line-break">
+        <div class="arrow"><a href="#section-slider"><img src="./assets/img/ARROW.png" alt=""></a></div>
+        <p>4climatize</p>
+    </div>
+
+    <div id="section-slider" class="carrossel">
+        <div class="container-text">
+            <div class="swiper">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <h2 class="text-slider1">Redução de custos</h2>
+                        <p class="text-slider1">
+                            Produtos impróprios para venda devido à deterioração
+                            representam cerca de 30% das perdas nas linhas de frios.
+                        </p>
+                    </div>
+                    <div class="swiper-slide">
+                        <h2 class="text-slider2">Alterações constantes</h2>
+                        <p class="text-slider2">
+                            Comprometem a qualidade dos seus produtos e este é um dos principais fatores
+                            que contribuem para a perda de clientes e da imagem de seu negócio.
+                        </p>
+                    </div>
+                    <div class="swiper-slide">
+                        <h2 class="text-slider3">Acompanhar o comportamento</h2>
+                        <p class="text-slider3">
+                            Reduza em até 50% o tempo de parada dos seus equipamentos;
+                            Possibilita a criação de agenda para manutenção programada;
+                            Reduza custos devido à ineficiência dos seus equipamentos.
+                        </p>
+                    </div>
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="servicos" id="servicos">
+        <div class="text-servicos">
+            <h3>NOSSOS SERVIÇOS</h3>
+            <p>Contribuímos para o ganho de clientes e da imagem do seu negócio.</p>
+        </div>
+        <div class="container-cards">
+            
+                <div class="box-info mobilidade">
+                    <div class="elemento-hover">
+                        <img src="./assets/img/mobilidade1.jpg" alt="">
+                        <div class="texto-hover">
+                            <h1>Mobilidade</h1>
+                            <p>Com a 4Climatize você acessa a plataforma com suas
+                                informações em qualquer lugar do planeta.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="box-info gerencial">
+                    <div class="elemento-hover">
+                        <img src="./assets/img/gerencial.png" alt="">
+                        <div class="texto-hover">
+                            <h1>Gerencial</h1>
+                            <p>
+                                Acompanhe o status dos seus equipamentos
+                                através painéis e gráficos em tempo real.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="box-info monitoramento">
+                    <div class="elemento-hover">
+                        <img src="./assets/img/monitoramento.png" alt="">
+                        <div class="texto-hover">
+                            <h1>Monitoramento</h1>
+                            <p>
+                                Acesse a plataforma via smartphone, tablet ou desktop.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+               
+                    <div class="box-info sensoriamento">
+                        <div class="elemento-hover">
+                            <img src="./assets/img/sensoriamento.png" alt="">
+                            <div class="texto-hover">
+                                <h1>Sensoriamento</h1>
+                                <p>
+                                    Equipamentos para coleta das informações de alta performance e confiabilidade..
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box-info relatorios">
+                        <div class="elemento-hover">
+                            <img src="./assets/img/relatorios.png" alt="">
+                            <div class="texto-hover">
+                                <h1>Relatórios</h1>
+                                <p>
+                                    Com a 4Climatize você acessa a plataforma com suas
+                                    informações em qualquer lugar do planeta.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box-info segurança">
+                        <div class="elemento-hover">
+                            <img src="./assets/img/segurança.png" alt="">
+                            <div class="texto-hover">
+                                <h1>Segurança</h1>
+                                <p>
+                                    Seus dados ficam armazenados em servidores de alta
+                                    performance, segurança e confiabilidade.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+   
+
+    </div>
+
+    <div class="section-vantagens">
+        <div class="title-section-vantagens">
+            <h3>Solitação Em Monitoramento </h3>
+            <p>Vantagens Para o Seu Negócio</p>
+        </div>
+        <div class="container-rectangle">
+                <div class="rectangle">
+                    <img src="./assets/img/Group.png" alt="">
+                    <p>Antecipação à perda de produtos.</p>
+                </div>
+
+                <div class="rectangle">
+                    <img src="./assets/img/Group.png" alt="">
+                    <p>Análise de desvios de comportamento.</p>
+                </div>
+
+                <div class="rectangle">
+                    <img src="./assets/img/Group.png" alt="">
+                    <p>Análise de desvios de comportamento.</p>
+                </div>
+
+          
+
+            
+                <div class="rectangle">
+                    <img src="./assets/img/Group.png" alt="">
+                    <p>Agilidade na deteção de falhas.</p>
+                </div>
+
+                <div class="rectangle">
+                    <img src="./assets/img/Group.png" alt="">
+                    <p> Históricos, painéis e relatórios das medições</p>
+                </div>
+
+                <div class="rectangle">
+                    <img src="./assets/img/Group.png" alt="">
+                    <p>Antecipação à falhas de equipamentos</p>
+                </div>
+            
+        </div>
+    </div>
+
+    <div class="section-sobre-nos" id="sobre-nos">
+        <div class="section-sobre-nos-card">
+            <h1>Sobre nós</h1>
+            <p>
+                Produtos impróprios para venda devido à deterioração representam cerca de 30% das perdas nas linhas de
+                frios.
+                O principal fator está ligado à alterações bruscas e descontrole nas temperaturas de armazenamento.<br>
+
+                <br>Nossa jornada começou em 2017, atendendo o mercado cervejeiro com equipamentos de monitoramento
+                altamente sensíveis e precisos, abrangendo todo o processo, da fermentação à maturação.<br>
+
+                <br>Após 3 anos de pesquisa e desenvolvimento, alcançamos um produto de alta confiabilidade e excelente
+                custo-benefício. Hoje, atendemos principalmente clientes individuais, principalmente no setor
+                cervejeiro.
+            </p>
+        </div>
+        <div class="section-logo-sobre-nos">
+
+        </div>
+    </div>
+
+
+    <footer class="footer" id="contatos">
+        <div class="section-footer-number">
+            <p>+123 456 7890</p>
+            <button id="button-online-call">ENTRE EM CONTATO</button>
+        </div>
+        
+        <div class="nav-list-footer">
+            <div class="footer-navigation-list">    
+                <ul>
+                    <li class="nav-item-footer"><a href="#servicos" class="nav-link-footer">Produtos</a></li>
+                    <li class="nav-item-footer"><a href="#sobre-nos" class="nav-link-footer">Sobre nós</a></li>
+                    <li class="nav-item-footer"><a href="#contatos" class="nav-link-footer">Contatos</a></li>
+                    <li class="nav-item-footer"><a href="#" class="nav-link-footer">Cadastro</a></li>
+                    <li class="nav-item-footer"><a href="#" class="nav-link-footer">Login</a></li>
+                </ul>
+            </div>
+            <div class="navigation-text">
+                <p>&#169;Todos os direitos reservados <span>4Climatize</span> </p>
+                <p>Developed By <span>LOOMIT</span></p>
+            </div>        
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+    <script src="./assets/js/script.js"></script>
+</body>
+
+</html>
